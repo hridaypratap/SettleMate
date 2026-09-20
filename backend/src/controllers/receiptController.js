@@ -4,52 +4,100 @@ const { GoogleGenAI } = require("@google/genai");
 const sharp = require("sharp");
 const { receiptSchema } = require("../validators/receiptValidator");
 
-const ai = new GoogleGenAI({
-    apiKey: process.env.GEMINI_API_KEY
-});
+const aiClients = [
+    process.env.GEMINI_API_KEY,
+    process.env.GEMINI_API_KEY_2
+]
+    .filter(Boolean)
+    .map(apiKey => new GoogleGenAI({ apiKey }));
 
-async function generateReceiptWithRetry(contents) {
-    const maxAttempts = 2;
+async function generateReceiptWithFailover(contents) {
+    const maxAttemptsPerKey = 2;
     const timeoutMs = 30000;
 
-    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-        try {
-            const timeoutPromise = new Promise((_, reject) => {
-                setTimeout(() => {
-                    const error = new Error("Gemini request timed out");
-                    error.code = "ETIMEDOUT";
-                    reject(error);
-                }, timeoutMs);
-            });
+    let lastError;
 
-            const geminiPromise = ai.models.generateContent({
-                model: "gemini-3.6-flash",
-                contents
-            });
+    for (let keyIndex = 0; keyIndex < aiClients.length; keyIndex++) {
 
-            return await Promise.race([
-                geminiPromise,
-                timeoutPromise
-            ]);
+        const ai = aiClients[keyIndex];
 
-        } catch (error) {
+        console.log(
+            `🤖 Using Gemini API key ${keyIndex + 1}/${aiClients.length}`
+        );
 
-            const isTemporaryError =
-                error.status === 503;
+        for (let attempt = 1; attempt <= maxAttemptsPerKey; attempt++) {
 
-            if (!isTemporaryError || attempt === maxAttempts) {
+            try {
+
+                const timeoutPromise = new Promise((_, reject) => {
+                    setTimeout(() => {
+                        const error = new Error(
+                            "Gemini request timed out"
+                        );
+
+                        error.code = "ETIMEDOUT";
+
+                        reject(error);
+                    }, timeoutMs);
+                });
+
+                const geminiPromise = ai.models.generateContent({
+                    model: "gemini-3.6-flash",
+                    contents
+                });
+
+                return await Promise.race([
+                    geminiPromise,
+                    timeoutPromise
+                ]);
+
+            } catch (error) {
+
+                lastError = error;
+
+                console.log(
+                    `⚠️ Gemini key ${keyIndex + 1} failed`,
+                    `status=${error.status || error.code || "unknown"}`
+                );
+
+                // Quota/rate limit → immediately try next key
+                if (error.status === 429) {
+                    console.log(
+                        `🔄 Quota exhausted. Switching to Gemini key ${keyIndex + 2}...`
+                    );
+
+                    break;
+                }
+
+                // Temporary server error → retry same key once
+                if (error.status === 503 && attempt < maxAttemptsPerKey) {
+                    console.log(
+                        `🔁 Gemini temporary error. Retrying key ${keyIndex + 1}...`
+                    );
+
+                    await new Promise(resolve =>
+                        setTimeout(resolve, 2000)
+                    );
+
+                    continue;
+                }
+
+                // Timeout → try next key
+                if (error.code === "ETIMEDOUT") {
+                    console.log(
+                        `🔄 Gemini timeout. Switching to next key...`
+                    );
+
+                    break;
+                }
+
+                // Other errors → don't hide them
                 throw error;
             }
-
-            console.log(
-                `⚠️ Gemini temporary error. Retrying... (${attempt}/${maxAttempts})`
-            );
-
-            await new Promise(resolve =>
-                setTimeout(resolve, 2000)
-            );
         }
     }
+
+    throw lastError;
 }
 
 const extractReceiptController = async (req, res) => {
@@ -102,7 +150,7 @@ const extractReceiptController = async (req, res) => {
 
         console.log("🤖 Sending request to Gemini...");
 
-        const response = await generateReceiptWithRetry([
+        const response = await generateReceiptWithFailover([
             {
                 inlineData: {
                     mimeType: "image/jpeg",
