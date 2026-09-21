@@ -7,6 +7,7 @@ const groupRoutes = require("./routes/groupRoutes")
 const expenseRoutes = require("./routes/expenseRoutes");
 const settlementRoutes = require("./routes/settlementRoutes");
 const receiptRoutes = require("./routes/receiptRoutes");
+const dashboardRoutes = require("./routes/dashboardRoutes");
 const cors = require("cors");
 // dotenv.config()
 
@@ -31,6 +32,7 @@ app.use("/api/groups" , groupRoutes)
 app.use("/api/expenses", expenseRoutes);
 app.use("/api/settlements", settlementRoutes);
 app.use("/api/receipts", receiptRoutes);
+app.use("/api/dashboard", dashboardRoutes);
 
 app.get("/", (req,res) =>{
     res.send("Express Splitter is hridays app")
