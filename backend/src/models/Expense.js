@@ -1,50 +1,59 @@
-const mongoose = require("mongoose")
-const { trim } = require("zod")
+const mongoose = require("mongoose");
+
 const ExpenseSchema = new mongoose.Schema(
     {
-        group:{
+        group: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Group",
             required: true
         },
 
-        paidBy:{
+        paidBy: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "User",
             required: true
         },
-        amount:{
-            type:Number,
-            required:true,
-            min:0 
+
+        amount: {
+            type: Number,
+            required: true,
+            min: 0
         },
-        description:{
-            type:String,
-            required:true,
-            trim:true
+
+        description: {
+            type: String,
+            required: true,
+            trim: true
         },
-        splitType:{
-            type:String,
-            enum:["equal","custom"],
-            required:true
+
+        splitType: {
+            type: String,
+            enum: ["equal", "custom"],
+            required: true
         },
-        splitAmong:[
+
+        splitAmong: [
             {
-                user:{
+                user: {
                     type: mongoose.Schema.Types.ObjectId,
-                    ref:"User",
-                    required:true
+                    ref: "User",
+                    required: true
                 },
-                share:{
-                    type:Number,
-                    required:true,
-                    min:0
+
+                share: {
+                    type: Number,
+                    required: true,
+                    min: 0
                 }
             }
         ]
-
     },
-    { timestamps: true }
+    {
+        timestamps: true
+    }
 );
 
-module.exports = mongoose.model("Expense", ExpenseSchema)
+// Index used by group expense and balance queries
+ExpenseSchema.index({ group: 1 });
+
+module.exports = mongoose.model("Expense", ExpenseSchema);
