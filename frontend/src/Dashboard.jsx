@@ -20,84 +20,44 @@ function Dashboard({
   })
 
   useEffect(() => {
-    async function fetchDashboardStats() {
+    async function fetchDashboardData() {
       try {
-        const data = await apiRequest('/groups')
+        const data = await apiRequest('/dashboard')
+
         const fetchedGroups = data.groups || []
 
         setGroups(fetchedGroups)
         setGroupCount(fetchedGroups.length)
 
-        const results = await Promise.all(
-          fetchedGroups.map(async (group) => {
-            const [expensesData, balancesData] =
-              await Promise.all([
-                apiRequest(`/expenses/group/${group._id}`),
-                apiRequest(
-                  `/expenses/group/${group._id}/balances`
-                ),
-              ])
-
-            return {
-              expenses: expensesData.expenses || [],
-              balances: balancesData.balances || [],
-            }
-          })
-        )
-
-        let totalExpenses = 0
-        let youAreOwed = 0
-        let youOwe = 0
-
-        for (const result of results) {
-          totalExpenses += result.expenses.reduce(
-            (total, expense) =>
-              total + Number(expense.amount || 0),
-            0
-          )
-
-          const currentBalance = result.balances.find(
-            (item) =>
-              String(item.user) === String(user._id)
-          )
-
-          const balance = Number(
-            currentBalance?.balance || 0
-          )
-
-          if (balance > 0) {
-            youAreOwed += balance
-          } else if (balance < 0) {
-            youOwe += Math.abs(balance)
-          }
-        }
-
         setDashboardStats({
-          totalExpenses,
-          youAreOwed,
-          youOwe,
+          totalExpenses: Number(data.totalExpenses || 0),
+          youAreOwed: Number(data.youAreOwed || 0),
+          youOwe: Number(data.youOwe || 0),
         })
       } catch (error) {
         console.error(
-          'Dashboard Stats Error:',
+          'Dashboard Data Error:',
           error
         )
       }
     }
 
-    fetchDashboardStats()
+    fetchDashboardData()
   }, [user])
 
   if (selectedGroupId) {
     return (
       <div className="dashboard">
+
         <aside className="sidebar">
+
           <div className="brand">
             <div className="brand-logo">₹</div>
             <span>Settlemate</span>
           </div>
 
           <nav className="sidebar-nav">
+
             <button
               className="nav-item"
               onClick={() => setSelectedGroupId(null)}
@@ -120,9 +80,11 @@ function Dashboard({
               <span>⇄</span>
               Settlements
             </button>
+
           </nav>
 
           <div className="sidebar-bottom">
+
             <button className="nav-item">
               <span>⚙</span>
               Settings
@@ -134,7 +96,9 @@ function Dashboard({
             >
               Logout
             </button>
+
           </div>
+
         </aside>
 
         <GroupDetails
@@ -142,19 +106,23 @@ function Dashboard({
           user={user}
           onBack={() => setSelectedGroupId(null)}
         />
+
       </div>
     )
   }
 
   return (
     <div className="dashboard">
+
       <aside className="sidebar">
+
         <div className="brand">
           <div className="brand-logo">₹</div>
           <span>Settlemate</span>
         </div>
 
         <nav className="sidebar-nav">
+
           <button className="nav-item active">
             <span>⌂</span>
             Dashboard
@@ -174,9 +142,11 @@ function Dashboard({
             <span>⇄</span>
             Settlements
           </button>
+
         </nav>
 
         <div className="sidebar-bottom">
+
           <button className="nav-item">
             <span>⚙</span>
             Settings
@@ -188,13 +158,20 @@ function Dashboard({
           >
             Logout
           </button>
+
         </div>
+
       </aside>
 
       <main className="dashboard-main">
+
         <header className="dashboard-header">
+
           <div>
-            <p className="header-label">DASHBOARD</p>
+
+            <p className="header-label">
+              DASHBOARD
+            </p>
 
             <h1>
               Good to see you, {user.name} 👋
@@ -203,9 +180,11 @@ function Dashboard({
             <p className="header-subtitle">
               Keep track of your shared expenses and settlements.
             </p>
+
           </div>
 
           <div className="header-actions">
+
             <button
               className="theme-toggle"
               onClick={onToggleTheme}
@@ -217,47 +196,71 @@ function Dashboard({
             <div className="user-avatar">
               {user.name.charAt(0).toUpperCase()}
             </div>
+
           </div>
+
         </header>
 
         <section className="stats-grid">
+
           <div className="stat-card">
-            <div className="stat-icon">👥</div>
+
+            <div className="stat-icon">
+              👥
+            </div>
+
             <div>
               <p>Total Groups</p>
               <h2>{groupCount}</h2>
             </div>
+
           </div>
 
           <div className="stat-card">
-            <div className="stat-icon">₹</div>
+
+            <div className="stat-icon">
+              ₹
+            </div>
+
             <div>
               <p>Total Expenses</p>
               <h2>
                 ₹{dashboardStats.totalExpenses.toFixed(2)}
               </h2>
             </div>
+
           </div>
 
           <div className="stat-card">
-            <div className="stat-icon">↑</div>
+
+            <div className="stat-icon">
+              ↑
+            </div>
+
             <div>
               <p>You Are Owed</p>
               <h2>
                 ₹{dashboardStats.youAreOwed.toFixed(2)}
               </h2>
             </div>
+
           </div>
 
           <div className="stat-card">
-            <div className="stat-icon">↓</div>
+
+            <div className="stat-icon">
+              ↓
+            </div>
+
             <div>
               <p>You Owe</p>
               <h2>
                 ₹{dashboardStats.youOwe.toFixed(2)}
               </h2>
             </div>
+
           </div>
+
         </section>
 
         <Groups
@@ -266,7 +269,9 @@ function Dashboard({
           onGroupsUpdate={setGroups}
           onOpenGroup={setSelectedGroupId}
         />
+
       </main>
+
     </div>
   )
 }
