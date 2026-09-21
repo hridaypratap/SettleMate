@@ -2,11 +2,21 @@ const Expense = require("../models/Expense");
 const Group = require("../models/Group");
 
 const getDashboardData = async (userId) => {
+    const start = Date.now();
+
+    console.log("📊 Dashboard request started");
+
     const groups = await Group.find({
         members: userId
     })
         .select("_id name members createdBy")
         .lean();
+
+    console.log(
+        "⏱️ Groups query:",
+        Date.now() - start,
+        "ms"
+    );
 
     if (groups.length === 0) {
         return {
@@ -24,6 +34,12 @@ const getDashboardData = async (userId) => {
     })
         .select("group paidBy amount splitAmong")
         .lean();
+
+    console.log(
+        "⏱️ Expenses query:",
+        Date.now() - start,
+        "ms"
+    );
 
     const balancesByGroup = {};
 
