@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Groups from './Groups'
 import GroupDetails from './GroupDetails'
 import { apiRequest } from './api/api'
@@ -11,7 +11,17 @@ function Dashboard({
 }) {
   const [groups, setGroups] = useState([])
   const [groupCount, setGroupCount] = useState(0)
-  const [selectedGroupId, setSelectedGroupId] = useState(null)
+
+  const [selectedGroupId, setSelectedGroupId] = useState(
+    localStorage.getItem('selectedGroupId')
+  )
+
+  const [groupNavigationTarget, setGroupNavigationTarget] = useState(null)
+
+  const groupsSectionRef = useRef(null)
+  const expensesSectionRef = useRef(null)
+  const settlementsSectionRef = useRef(null)
+  const settingsSectionRef = useRef(null)
 
   const [dashboardStats, setDashboardStats] = useState({
     totalExpenses: 0,
@@ -35,15 +45,46 @@ function Dashboard({
           youOwe: Number(data.youOwe || 0),
         })
       } catch (error) {
-        console.error(
-          'Dashboard Data Error:',
-          error
-        )
+        console.error('Dashboard Data Error:', error)
       }
     }
 
     fetchDashboardData()
   }, [user])
+
+  function goToDashboard() {
+    localStorage.removeItem('selectedGroupId')
+    setSelectedGroupId(null)
+    setGroupNavigationTarget(null)
+
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth',
+    })
+  }
+
+  function goToGroups() {
+    localStorage.removeItem('selectedGroupId')
+    setSelectedGroupId(null)
+
+    setTimeout(() => {
+      groupsSectionRef.current?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      })
+    }, 0)
+  }
+
+  function goToDashboardSection(ref) {
+    ref.current?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start',
+    })
+  }
+
+  // =========================
+  // GROUP DETAILS VIEW
+  // =========================
 
   if (selectedGroupId) {
     return (
@@ -60,23 +101,36 @@ function Dashboard({
 
             <button
               className="nav-item"
-              onClick={() => setSelectedGroupId(null)}
+              onClick={goToDashboard}
             >
               <span>⌂</span>
               Dashboard
             </button>
 
-            <button className="nav-item active">
+            <button
+              className="nav-item"
+              onClick={goToGroups}
+            >
               <span>◫</span>
               Groups
             </button>
 
-            <button className="nav-item">
+            <button
+              className="nav-item"
+              onClick={() => {
+                setGroupNavigationTarget('expenses')
+              }}
+            >
               <span>₹</span>
               Expenses
             </button>
 
-            <button className="nav-item">
+            <button
+              className="nav-item"
+              onClick={() => {
+                setGroupNavigationTarget('settlements')
+              }}
+            >
               <span>⇄</span>
               Settlements
             </button>
@@ -85,7 +139,12 @@ function Dashboard({
 
           <div className="sidebar-bottom">
 
-            <button className="nav-item">
+            <button
+              className="nav-item"
+              onClick={() => {
+                setGroupNavigationTarget('settings')
+              }}
+            >
               <span>⚙</span>
               Settings
             </button>
@@ -104,12 +163,24 @@ function Dashboard({
         <GroupDetails
           groupId={selectedGroupId}
           user={user}
-          onBack={() => setSelectedGroupId(null)}
+          navigationTarget={groupNavigationTarget}
+          onNavigationHandled={() => {
+            setGroupNavigationTarget(null)
+          }}
+          onBack={() => {
+            localStorage.removeItem('selectedGroupId')
+            setSelectedGroupId(null)
+            setGroupNavigationTarget(null)
+          }}
         />
 
       </div>
     )
   }
+
+  // =========================
+  // DASHBOARD VIEW
+  // =========================
 
   return (
     <div className="dashboard">
@@ -123,22 +194,43 @@ function Dashboard({
 
         <nav className="sidebar-nav">
 
-          <button className="nav-item active">
+          <button
+            className="nav-item active"
+            onClick={() => {
+              window.scrollTo({
+                top: 0,
+                behavior: 'smooth',
+              })
+            }}
+          >
             <span>⌂</span>
             Dashboard
           </button>
 
-          <button className="nav-item">
+          <button
+            className="nav-item"
+            onClick={goToGroups}
+          >
             <span>◫</span>
             Groups
           </button>
 
-          <button className="nav-item">
+          <button
+            className="nav-item"
+            onClick={() => {
+              goToDashboardSection(expensesSectionRef)
+            }}
+          >
             <span>₹</span>
             Expenses
           </button>
 
-          <button className="nav-item">
+          <button
+            className="nav-item"
+            onClick={() => {
+              goToDashboardSection(settlementsSectionRef)
+            }}
+          >
             <span>⇄</span>
             Settlements
           </button>
@@ -147,7 +239,12 @@ function Dashboard({
 
         <div className="sidebar-bottom">
 
-          <button className="nav-item">
+          <button
+            className="nav-item"
+            onClick={() => {
+              goToDashboardSection(settingsSectionRef)
+            }}
+          >
             <span>⚙</span>
             Settings
           </button>
@@ -165,7 +262,10 @@ function Dashboard({
 
       <main className="dashboard-main">
 
-        <header className="dashboard-header">
+        <header
+          className="dashboard-header"
+          ref={settingsSectionRef}
+        >
 
           <div>
 
@@ -216,7 +316,10 @@ function Dashboard({
 
           </div>
 
-          <div className="stat-card">
+          <div
+            className="stat-card"
+            ref={expensesSectionRef}
+          >
 
             <div className="stat-icon">
               ₹
@@ -231,7 +334,10 @@ function Dashboard({
 
           </div>
 
-          <div className="stat-card">
+          <div
+            className="stat-card"
+            ref={settlementsSectionRef}
+          >
 
             <div className="stat-icon">
               ↑
@@ -263,12 +369,17 @@ function Dashboard({
 
         </section>
 
-        <Groups
-          groups={groups}
-          onGroupsChange={setGroupCount}
-          onGroupsUpdate={setGroups}
-          onOpenGroup={setSelectedGroupId}
-        />
+        <div ref={groupsSectionRef}>
+          <Groups
+            groups={groups}
+            onGroupsChange={setGroupCount}
+            onGroupsUpdate={setGroups}
+            onOpenGroup={(groupId) => {
+              localStorage.setItem('selectedGroupId', groupId)
+              setSelectedGroupId(groupId)
+            }}
+          />
+        </div>
 
       </main>
 

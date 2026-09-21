@@ -1468,22 +1468,110 @@ form button:hover {
 /* ========================================
    GROUP DETAILS
 ======================================== */
+/* ========================================
+   GROUP DETAILS — TOPBAR
+======================================== */
+
+.group-topbar {
+  position: fixed;
+
+  top: 0;
+  left: 250px;
+  right: 0;
+
+  height: 64px;
+
+  display: flex;
+  align-items: center;
+
+  padding: 0 32px;
+
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.05);
+
+  z-index: 1000;
+
+  box-sizing: border-box;
+}
+
+
+/* ========================================
+   BACK TO DASHBOARD BUTTON
+======================================== */
 
 .back-button {
-  border: 0;
-  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
 
-  background: transparent;
+  padding: 8px 14px;
+
+  border: 1px solid var(--border);
+  border-radius: 9px;
+
+  background: var(--surface);
   color: var(--text-secondary);
 
   font-size: 13px;
   font-weight: 600;
 
-  margin-bottom: 28px;
+  cursor: pointer;
+
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.15s ease;
 }
 
+
 .back-button:hover {
+  background: var(--surface-hover);
+  border-color: var(--primary);
   color: var(--primary);
+}
+
+
+.back-button:active {
+  transform: translateY(1px);
+}
+
+
+/* ========================================
+   SPACE BELOW FIXED TOPBAR
+======================================== */
+
+.group-topbar + .group-details-header {
+  margin-top: 88px;
+}
+
+
+/* ========================================
+   TABLET
+======================================== */
+
+@media (max-width: 800px) {
+
+  .group-topbar {
+    left: 210px;
+  }
+
+}
+
+
+/* ========================================
+   MOBILE
+======================================== */
+
+@media (max-width: 650px) {
+
+  .group-topbar {
+    left: 0;
+    padding: 0 16px;
+  }
+
 }
 
 .group-details-header {
