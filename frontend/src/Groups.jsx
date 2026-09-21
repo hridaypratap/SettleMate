@@ -1,33 +1,16 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { apiRequest } from './api/api'
 
-function Groups({ onGroupsChange, onOpenGroup }) {
-  const [groups, setGroups] = useState([])
-  const [loading, setLoading] = useState(true)
+function Groups({
+  groups,
+  onGroupsChange,
+  onGroupsUpdate,
+  onOpenGroup,
+}) {
   const [error, setError] = useState('')
   const [showCreate, setShowCreate] = useState(false)
   const [groupName, setGroupName] = useState('')
   const [creating, setCreating] = useState(false)
-
-  async function fetchGroups() {
-    try {
-      setLoading(true)
-      setError('')
-
-      const data = await apiRequest('/groups')
-
-      setGroups(data.groups)
-      onGroupsChange(data.groups.length)
-    } catch (error) {
-      setError(error.message)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    fetchGroups()
-  }, [])
 
   async function handleCreateGroup(e) {
     e.preventDefault()
@@ -49,10 +32,9 @@ function Groups({ onGroupsChange, onOpenGroup }) {
       })
 
       const newGroup = data.group
-
       const updatedGroups = [...groups, newGroup]
 
-      setGroups(updatedGroups)
+      onGroupsUpdate(updatedGroups)
       onGroupsChange(updatedGroups.length)
 
       setGroupName('')
@@ -66,7 +48,6 @@ function Groups({ onGroupsChange, onOpenGroup }) {
 
   return (
     <section className="dashboard-section">
-
       <div className="section-header">
         <div>
           <h2>Your Groups</h2>
@@ -87,13 +68,8 @@ function Groups({ onGroupsChange, onOpenGroup }) {
         </p>
       )}
 
-      {loading ? (
-        <div className="groups-loading">
-          Loading your groups...
-        </div>
-      ) : groups.length === 0 ? (
+      {groups.length === 0 ? (
         <div className="empty-groups">
-
           <div className="empty-icon">👥</div>
 
           <h3>No groups yet</h3>
@@ -109,14 +85,14 @@ function Groups({ onGroupsChange, onOpenGroup }) {
           >
             Create Your First Group
           </button>
-
         </div>
       ) : (
         <div className="groups-grid">
-
           {groups.map((group) => (
-            <div className="group-card" key={group._id}>
-
+            <div
+              className="group-card"
+              key={group._id}
+            >
               <div className="group-card-top">
                 <div className="group-icon">
                   {group.name.charAt(0).toUpperCase()}
@@ -138,22 +114,20 @@ function Groups({ onGroupsChange, onOpenGroup }) {
 
               <button
                 className="view-group-button"
-                onClick={() => onOpenGroup(group._id)}
+                onClick={() =>
+                  onOpenGroup(group._id)
+                }
               >
                 Open Group →
-            </button>
-
+              </button>
             </div>
           ))}
-
         </div>
       )}
 
       {showCreate && (
         <div className="modal-overlay">
-
           <div className="create-group-modal">
-
             <button
               className="modal-close"
               onClick={() => {
@@ -176,14 +150,15 @@ function Groups({ onGroupsChange, onOpenGroup }) {
             </p>
 
             <form onSubmit={handleCreateGroup}>
-
               <label>Group name</label>
 
               <input
                 type="text"
                 placeholder="e.g. Goa Trip"
                 value={groupName}
-                onChange={(e) => setGroupName(e.target.value)}
+                onChange={(e) =>
+                  setGroupName(e.target.value)
+                }
                 autoFocus
               />
 
@@ -192,16 +167,14 @@ function Groups({ onGroupsChange, onOpenGroup }) {
                 className="auth-submit"
                 disabled={creating}
               >
-                {creating ? 'Creating...' : 'Create Group'}
+                {creating
+                  ? 'Creating...'
+                  : 'Create Group'}
               </button>
-
             </form>
-
           </div>
-
         </div>
       )}
-
     </section>
   )
 }

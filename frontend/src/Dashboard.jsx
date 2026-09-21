@@ -3,86 +3,151 @@ import Groups from './Groups'
 import GroupDetails from './GroupDetails'
 import { apiRequest } from './api/api'
 
+function Dashboard({
+  user,
+  onLogout,
+  theme,
+  onToggleTheme,
+}) {
+  const [groups, setGroups] = useState([])
+  const [groupCount, setGroupCount] = useState(0)
+  const [selectedGroupId, setSelectedGroupId] = useState(null)
 
-
-function Dashboard({ 
-    user, 
-    onLogout, 
-    theme, 
-    onToggleTheme,
- }) {
-
-    const [groupCount, setGroupCount] = useState(0)
-    const [selectedGroupId, setSelectedGroupId] = useState(null)
-    const [dashboardStats, setDashboardStats] = useState({
+  const [dashboardStats, setDashboardStats] = useState({
     totalExpenses: 0,
     youAreOwed: 0,
     youOwe: 0,
-    })
+  })
 
-    useEffect(() => {
+  useEffect(() => {
     async function fetchDashboardStats() {
-        try {
-            const data = await apiRequest('/groups')
-            const groups = data.groups || []
+      try {
+        const data = await apiRequest('/groups')
+        const fetchedGroups = data.groups || []
 
-            let totalExpenses = 0
-            let youAreOwed = 0
-            let youOwe = 0
+        setGroups(fetchedGroups)
+        setGroupCount(fetchedGroups.length)
 
-            for (const group of groups) {
-                const expensesData = await apiRequest(
-                    `/expenses/group/${group._id}`
-                )
+        const results = await Promise.all(
+          fetchedGroups.map(async (group) => {
+            const [expensesData, balancesData] =
+              await Promise.all([
+                apiRequest(`/expenses/group/${group._id}`),
+                apiRequest(
+                  `/expenses/group/${group._id}/balances`
+                ),
+              ])
 
-                const balancesData = await apiRequest(
-                    `/expenses/group/${group._id}/balances`
-                )
-
-                const expenses = expensesData.expenses || []
-                const balances = balancesData.balances || []
-
-                totalExpenses += expenses.reduce(
-                    (total, expense) =>
-                        total + Number(expense.amount || 0),
-                    0
-                )
-
-                const currentBalance = balances.find(
-                    (item) => String(item.user) === String(user._id)
-                )       
-
-                const balance = Number(
-                    currentBalance?.balance || 0
-                )
-
-                if (balance > 0) {
-                    youAreOwed += balance
-                } else if (balance < 0) {
-                    youOwe += Math.abs(balance)
-                }
+            return {
+              expenses: expensesData.expenses || [],
+              balances: balancesData.balances || [],
             }
+          })
+        )
 
-            setDashboardStats({
-                totalExpenses,
-                youAreOwed,
-                youOwe,
-            })
-        } catch (error) {
-            console.error(
-                'Dashboard Stats Error:',
-                error
-            )
+        let totalExpenses = 0
+        let youAreOwed = 0
+        let youOwe = 0
+
+        for (const result of results) {
+          totalExpenses += result.expenses.reduce(
+            (total, expense) =>
+              total + Number(expense.amount || 0),
+            0
+          )
+
+          const currentBalance = result.balances.find(
+            (item) =>
+              String(item.user) === String(user._id)
+          )
+
+          const balance = Number(
+            currentBalance?.balance || 0
+          )
+
+          if (balance > 0) {
+            youAreOwed += balance
+          } else if (balance < 0) {
+            youOwe += Math.abs(balance)
+          }
         }
+
+        setDashboardStats({
+          totalExpenses,
+          youAreOwed,
+          youOwe,
+        })
+      } catch (error) {
+        console.error(
+          'Dashboard Stats Error:',
+          error
+        )
+      }
     }
 
     fetchDashboardStats()
-}, [user])
+  }, [user])
 
-    if (selectedGroupId) {
+  if (selectedGroupId) {
+    return (
+      <div className="dashboard">
+        <aside className="sidebar">
+          <div className="brand">
+            <div className="brand-logo">₹</div>
+            <span>Settlemate</span>
+          </div>
+
+          <nav className="sidebar-nav">
+            <button
+              className="nav-item"
+              onClick={() => setSelectedGroupId(null)}
+            >
+              <span>⌂</span>
+              Dashboard
+            </button>
+
+            <button className="nav-item active">
+              <span>◫</span>
+              Groups
+            </button>
+
+            <button className="nav-item">
+              <span>₹</span>
+              Expenses
+            </button>
+
+            <button className="nav-item">
+              <span>⇄</span>
+              Settlements
+            </button>
+          </nav>
+
+          <div className="sidebar-bottom">
+            <button className="nav-item">
+              <span>⚙</span>
+              Settings
+            </button>
+
+            <button
+              className="logout-button"
+              onClick={onLogout}
+            >
+              Logout
+            </button>
+          </div>
+        </aside>
+
+        <GroupDetails
+          groupId={selectedGroupId}
+          user={user}
+          onBack={() => setSelectedGroupId(null)}
+        />
+      </div>
+    )
+  }
+
   return (
     <div className="dashboard">
-
       <aside className="sidebar">
         <div className="brand">
           <div className="brand-logo">₹</div>
@@ -90,15 +155,12 @@ function Dashboard({
         </div>
 
         <nav className="sidebar-nav">
-          <button
-            className="nav-item"
-            onClick={() => setSelectedGroupId(null)}
-          >
+          <button className="nav-item active">
             <span>⌂</span>
             Dashboard
           </button>
 
-          <button className="nav-item active">
+          <button className="nav-item">
             <span>◫</span>
             Groups
           </button>
@@ -115,7 +177,6 @@ function Dashboard({
         </nav>
 
         <div className="sidebar-bottom">
-
           <button className="nav-item">
             <span>⚙</span>
             Settings
@@ -127,76 +188,18 @@ function Dashboard({
           >
             Logout
           </button>
-
         </div>
       </aside>
-
-      <GroupDetails
-        groupId={selectedGroupId}
-        user={user}
-        onBack={() => setSelectedGroupId(null)}
-      />
-
-    </div>
-  )
-}
-
-
-  return (
-    <div className="dashboard">
-
-      {/* Sidebar */}
-
-      <aside className="sidebar">
-        <div className="brand">
-          <div className="brand-logo">₹</div>
-          <span>Settlemate</span>
-        </div>
-
-        <nav className="sidebar-nav">
-          <button className="nav-item active">
-            <span>⌂</span>
-            Dashboard
-          </button>
-
-          <button className="nav-item">
-            <span>◫</span>
-            Groups
-          </button>
-
-          <button className="nav-item">
-            <span>₹</span>
-            Expenses
-          </button>
-
-          <button className="nav-item">
-            <span>⇄</span>
-            Settlements
-          </button>
-        </nav>
-
-        <div className="sidebar-bottom">
-          <button className="nav-item">
-            <span>⚙</span>
-            Settings
-          </button>
-
-          <button className="logout-button" onClick={onLogout}>
-            Logout
-          </button>
-        </div>
-      </aside>
-
-      {/* Main */}
 
       <main className="dashboard-main">
-
-        {/* Header */}
-
         <header className="dashboard-header">
           <div>
             <p className="header-label">DASHBOARD</p>
-            <h1>Good to see you, {user.name} 👋</h1>
+
+            <h1>
+              Good to see you, {user.name} 👋
+            </h1>
+
             <p className="header-subtitle">
               Keep track of your shared expenses and settlements.
             </p>
@@ -217,10 +220,7 @@ function Dashboard({
           </div>
         </header>
 
-        {/* Stats */}
-
         <section className="stats-grid">
-
           <div className="stat-card">
             <div className="stat-icon">👥</div>
             <div>
@@ -233,7 +233,9 @@ function Dashboard({
             <div className="stat-icon">₹</div>
             <div>
               <p>Total Expenses</p>
-              <h2>₹{dashboardStats.totalExpenses.toFixed(2)}</h2>
+              <h2>
+                ₹{dashboardStats.totalExpenses.toFixed(2)}
+              </h2>
             </div>
           </div>
 
@@ -241,7 +243,9 @@ function Dashboard({
             <div className="stat-icon">↑</div>
             <div>
               <p>You Are Owed</p>
-              <h2>₹{dashboardStats.youAreOwed.toFixed(2)}</h2>
+              <h2>
+                ₹{dashboardStats.youAreOwed.toFixed(2)}
+              </h2>
             </div>
           </div>
 
@@ -249,19 +253,19 @@ function Dashboard({
             <div className="stat-icon">↓</div>
             <div>
               <p>You Owe</p>
-              <h2>₹{dashboardStats.youOwe.toFixed(2)}</h2>
+              <h2>
+                ₹{dashboardStats.youOwe.toFixed(2)}
+              </h2>
             </div>
           </div>
-
         </section>
 
-        {/* Groups */}
-
-        <Groups 
-        onGroupsChange={setGroupCount}
-        onOpenGroup={setSelectedGroupId}
+        <Groups
+          groups={groups}
+          onGroupsChange={setGroupCount}
+          onGroupsUpdate={setGroups}
+          onOpenGroup={setSelectedGroupId}
         />
-
       </main>
     </div>
   )
