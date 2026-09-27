@@ -18,9 +18,7 @@ const createGroupController = async (req,res) =>{
             message: "Group Created Successfully" , group
         })
 
-
-
-        
+   
 
     } catch (error) {
         console.error("Group Creation Erro" , error)
