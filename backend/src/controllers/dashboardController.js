@@ -20,7 +20,6 @@ const getDashboardController = async (req, res) => {
     }
 };
 
-
 module.exports = {
     getDashboardController
 };
